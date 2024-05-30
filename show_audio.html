@@ -20,7 +20,6 @@
         margin: 5px; /* 与周围保持 5px 的间距 */
         /* 这里保持或定义正常状态下的样式 */
         border: 1px solid #dddddd; /* 浅色边框 */
-        padding: 10px; /* 可选：添加内边距以增加内容与边框的距离 */
     }
 
     .list-item:hover {
@@ -58,7 +57,7 @@
 
 <body>
 
-<div id="echartDiv"></div>
+<div id="echartDiv" style="width: 100%;height: 500px"></div>
 <div id="audioList"></div>
 
 <script>
@@ -107,16 +106,16 @@
             }
 
             div.innerHTML = `
-                <div id="item-${entry.index}" style="display: flex;margin: 10px">
-                    <div id="score-${entry.index}" style="width: 200px">分值: ${entry.score.toFixed(5)}</div>
-                    <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制分值</button>
+                <div id="item-${entry.index}" style="display: flex;margin: 10px;align-items: center;">
+                    <div id="score-${entry.index}" style="width: 100px">${entry.score.toFixed(5)}</div>
+                    <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制</button>
                     <!-- 注意：这里的音频文件路径需要根据实际情况调整 -->
-                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 20px">
+                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 20px;margin: 0 10px">
                         <source src="${entry.path.replace(/\\/g, '/')}" type="audio/mpeg">
                         您的浏览器不支持音频播放。
                     </audio>
-                    <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制路径</button>
-                    <div id="path-${entry.index}">${entry.path.replace(/\\/g, '/')}</div>
+                    <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制</button>
+                    <div id="path-${entry.index}" style="margin: 0 10px">${entry.path.replace(/\\/g, '/')}</div>
                 </div>
 
             `;
@@ -179,21 +178,24 @@
 
     }
 
-    function dispatchClickEvent(element) {
-        // 创建并派发一个点击事件给音频元素
-        const clickEvent = new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-        });
-        element.dispatchEvent(clickEvent);
+    function dispatchClickEvent(audioElement) {
+        console.log('播放/暂停按钮被点击');
+        if (audioElement.paused || audioElement.currentTime === 0) {
+            // 如果音频当前是暂停状态或尚未开始播放，则播放音频
+            audioElement.play();
+            console.log('正在播放音频');
+        } else {
+            // 如果音频正在播放，则暂停音频
+            audioElement.pause();
+            console.log('音频已暂停');
+        }
     }
 
 
     function countItemsByScoreRangeOptimized(items) {
         const scoreStep = 0.1;
         // 初始化最小和最大分数，确保包含所有可能的边界
-        let minScoreBound = -1;
+        let minScoreBound = -0.3;
         let maxScoreBound = 1;
 
         // 计算区间总数并初始化结果数组，同时明确每个区间的边界
@@ -268,7 +270,7 @@
             ],
             series: [
                 {
-                    name: 'Direct',
+                    name: '数量',
                     type: 'bar',
                     barWidth: '60%',
                     data: dataList.map(item => item.count)
@@ -283,13 +285,11 @@
         // 添加点击事件监听器
         myChart.on('click', function (params) {
             if (params.componentType === 'series') { // 确保点击的是系列中的数据
-                const category = params.dataCategory; // 分类轴的值，如 'Mon', 'Tue' 等
-                const value = params.value[0]; // 点击柱子对应的数据值
                 const seriesName = params.seriesName; // 点击的系列名称，如 'Direct'
 
-                console.log('点击了:', seriesName, '分类:', category, '值:', value);
+                console.log('点击了:', seriesName, '分类:', params.name, '值:', params.value);
                 
-                const selectedItem = dataList.find(item => item.range === category);
+                const selectedItem = dataList.find(item => item.range === params.name);
                 if (selectedItem) {
                     const subList = selectedItem.subList;
                     const firstEntry = subList[0];
@@ -311,7 +311,7 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(function() {
-            alert('复制成功');
+            // alert('复制成功');
         }, function(err) {
             console.error('复制失败: ', err);
         });
