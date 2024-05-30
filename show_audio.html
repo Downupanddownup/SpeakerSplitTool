@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从TXT文件加载数据</title>
+</head>
+
+<script type="text/javascript" src="./echarts.min.js"></script>
+
+<style>
+    .even {
+        background-color: white;
+    }
+    .odd {
+        background-color: antiquewhite; /* 或您选择的奇数行背景色 */
+    }
+
+    .list-item {
+        margin: 5px; /* 与周围保持 5px 的间距 */
+        /* 这里保持或定义正常状态下的样式 */
+        border: 1px solid #dddddd; /* 浅色边框 */
+        padding: 10px; /* 可选：添加内边距以增加内容与边框的距离 */
+    }
+
+    .list-item:hover {
+        background-color: lightskyblue; /* 指定鼠标悬停时的背景色 */
+        /* 可以在这里添加其他悬停时的样式变化，比如字体颜色、边框等 */
+    }
+
+    .selected {
+        background-color: deepskyblue; /* 指定鼠标悬停时的背景色 */
+        /* 可以在这里添加其他悬停时的样式变化，比如字体颜色、边框等 */
+    }
+
+    /* 按钮的基本样式 */
+    .styled-button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #ffffff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        outline: none;
+        transition: background-color 0.3s;
+    }
+
+    /* 按钮的悬停样式 */
+    .styled-button:hover {
+        background-color: #0056b3;
+    }
+
+</style>
+
+<body>
+
+<div id="echartDiv"></div>
+<div id="audioList"></div>
+
+<script>
+    // 使用Fetch API读取同级目录下的txt文件
+    fetch('http://localhost:8031/getFile')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("HTTP error " + response.status);
+            }
+            return response.text();
+        })
+        .then(data => {
+            let entries = JSON.parse(data);
+            entries.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
+            entries.forEach((entry, index) => {
+                entry.index = index;
+            })
+            processEchart(entries)
+            // 解析数据并显示
+            processData(entries);
+        })
+        .catch(error => {
+            console.log('There has been a problem with your fetch operation:', error);
+        });
+
+
+    function processData(entries) {
+
+        let audioList = document.getElementById('audioList');
+
+        let currentPlayingAudio = null; // 用于存储当前播放的音频
+
+        entries.forEach((entry, index) => {
+            let div = document.createElement('div');
+            div.style.textAlign = 'center';
+
+            div.classList.add('list-item')
+
+            // 根据索引判断奇偶，并添加相应的CSS类
+            if (index % 2 === 0) {
+                // 如果索引为偶数，添加"even"类
+                div.classList.add('even');
+            } else {
+                // 如果索引为奇数，添加"odd"类
+                div.classList.add('odd');
+            }
+
+            div.innerHTML = `
+                <div id="item-${entry.index}" style="display: flex;margin: 10px">
+                    <div id="score-${entry.index}" style="width: 200px">分值: ${entry.score.toFixed(5)}</div>
+                    <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制分值</button>
+                    <!-- 注意：这里的音频文件路径需要根据实际情况调整 -->
+                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 20px">
+                        <source src="${entry.path.replace(/\\/g, '/')}" type="audio/mpeg">
+                        您的浏览器不支持音频播放。
+                    </audio>
+                    <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制路径</button>
+                    <div id="path-${entry.index}">${entry.path.replace(/\\/g, '/')}</div>
+                </div>
+
+            `;
+
+            const scoreElement = div.querySelector(`#score-${entry.index}`);
+            const pathElement = div.querySelector(`#path-${entry.index}`);
+            const audioElement = div.querySelector(`#audio-${entry.index}`);
+
+            scoreElement.addEventListener('click', function () {
+                dispatchClickEvent(audioElement);
+            });
+
+            pathElement.addEventListener('click', function () {
+                dispatchClickEvent(audioElement);
+            });
+
+            // 为每个音频添加播放事件监听器
+            audioElement.addEventListener('play', function () {
+                if (currentPlayingAudio && currentPlayingAudio !== this) {
+                    currentPlayingAudio.pause(); // 如果有其他音频在播放，则先暂停
+                }
+                currentPlayingAudio = this; // 更新当前播放的音频引用
+            });
+
+            // 可以考虑添加暂停或结束事件处理，根据需要重置currentPlayingAudio
+            audioElement.addEventListener('pause', () => {
+                if (currentPlayingAudio === this) {
+                    currentPlayingAudio = null;
+                }
+            });
+            audioElement.addEventListener('ended', () => {
+                if (currentPlayingAudio === this) {
+                    currentPlayingAudio = null;
+                }
+            });
+
+            audioList.appendChild(div);
+        });
+
+        let currentSelectedRow = null; // 用来存储当前选中的行
+
+        // 假设有一个表格，行class为list-item
+        const rows = document.querySelectorAll('.list-item');
+
+        // 为每一行添加点击事件监听器
+        rows.forEach(row => {
+            row.addEventListener('click', function () {
+                // 如果之前有选中的行，先移除其样式
+                if (currentSelectedRow) {
+                    currentSelectedRow.classList.remove('selected');
+                }
+
+                // 添加或移除当前行的选中样式
+                this.classList.toggle('selected');
+
+                // 更新当前选中的行
+                currentSelectedRow = this;
+            });
+        });
+
+    }
+
+    function dispatchClickEvent(element) {
+        // 创建并派发一个点击事件给音频元素
+        const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        });
+        element.dispatchEvent(clickEvent);
+    }
+
+
+    function countItemsByScoreRangeOptimized(items) {
+        const scoreStep = 0.1;
+        // 初始化最小和最大分数，确保包含所有可能的边界
+        let minScoreBound = -1;
+        let maxScoreBound = 1;
+
+        // 计算区间总数并初始化结果数组，同时明确每个区间的边界
+        let intervals = [];
+        for (let i = minScoreBound; i <= maxScoreBound; i += scoreStep) {
+            intervals.push({
+                start: i,
+                end: i + scoreStep,
+                count: 0,
+                subList: []
+            });
+        }
+
+        // 遍历原数组，统计每个分值区间内的元素数量
+        items.forEach(item => {
+            for (let interval of intervals) {
+                if (interval.start <= item.score && item.score < interval.end) {
+                    interval.count++;
+                    interval.subList.push(item);
+                    break;
+                }
+            }
+        });
+
+        // 根据score从大到小排序
+        intervals.sort((a, b) => b.start - a.start);
+
+        // 转换格式为字符串表示的区间和计数
+        return intervals.map(interval => ({
+            range: `${interval.start.toFixed(1)}-${interval.end.toFixed(1)}`,
+            count: interval.count,
+            subList: interval.subList
+        }));
+    }
+
+    function processEchart(entries) {
+
+        const dataList = countItemsByScoreRangeOptimized(entries)
+
+        const dom = document.getElementById('echartDiv');
+        const myChart = echarts.init(dom, null, {
+            renderer: 'canvas',
+            useDirtyRect: false
+        });
+
+        let option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    data: dataList.map(item => item.range),
+                    axisTick: {
+                        alignWithLabel: true
+                    }
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value'
+                }
+            ],
+            series: [
+                {
+                    name: 'Direct',
+                    type: 'bar',
+                    barWidth: '60%',
+                    data: dataList.map(item => item.count)
+                }
+            ]
+        };
+
+        if (option && typeof option === 'object') {
+            myChart.setOption(option);
+        }
+
+        // 添加点击事件监听器
+        myChart.on('click', function (params) {
+            if (params.componentType === 'series') { // 确保点击的是系列中的数据
+                const category = params.dataCategory; // 分类轴的值，如 'Mon', 'Tue' 等
+                const value = params.value[0]; // 点击柱子对应的数据值
+                const seriesName = params.seriesName; // 点击的系列名称，如 'Direct'
+
+                console.log('点击了:', seriesName, '分类:', category, '值:', value);
+                
+                const selectedItem = dataList.find(item => item.range === category);
+                if (selectedItem) {
+                    const subList = selectedItem.subList;
+                    const firstEntry = subList[0];
+                    // 假设你有一个ID为'myElement'的元素，你想让页面滚动到这个元素的位置
+                    document.getElementById(`item-${firstEntry.index}`).scrollIntoView({
+                        behavior: 'smooth', // 使滚动动画效果平滑，默认为"auto"即瞬间滚动
+                        block: 'start'     // 指定元素的哪一部分对齐到视口的顶部，可选值有"start", "center", "end"
+                    });
+                }
+
+                // 在这里添加你希望点击后执行的逻辑
+                // 例如弹窗提示、跳转页面等
+            }
+        });
+
+        window.addEventListener('resize', myChart.resize);
+    }
+
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('复制成功');
+        }, function(err) {
+            console.error('复制失败: ', err);
+        });
+    }
+
+</script>
+
+</body>
+</html>
