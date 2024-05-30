@@ -107,15 +107,15 @@
 
             div.innerHTML = `
                 <div id="item-${entry.index}" style="display: flex;margin: 10px;align-items: center;">
-                    <div id="score-${entry.index}" style="width: 100px">${entry.score.toFixed(5)}</div>
+                    <div id="score-${entry.index}" style="width: 100px;cursor: pointer">${entry.score.toFixed(5)}</div>
                     <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制</button>
                     <!-- 注意：这里的音频文件路径需要根据实际情况调整 -->
-                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 20px;margin: 0 10px">
+                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 40px;margin: 0 10px">
                         <source src="${entry.path.replace(/\\/g, '/')}" type="audio/mpeg">
                         您的浏览器不支持音频播放。
                     </audio>
                     <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制</button>
-                    <div id="path-${entry.index}" style="margin: 0 10px">${entry.path.replace(/\\/g, '/')}</div>
+                    <div id="path-${entry.index}" style="padding: 0 10px;cursor: pointer;display: flex;align-items: center;height: 50px">${entry.path.replace(/\\/g, '/')}</div>
                 </div>
 
             `;
@@ -311,7 +311,7 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(function() {
-            // alert('复制成功');
+            alert('复制成功');
         }, function(err) {
             console.error('复制失败: ', err);
         });

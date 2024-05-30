@@ -348,9 +348,15 @@ def create_gradio_interface():
             )
         with gr.Row():
             text_split_score = gr.Textbox(label="请输入待分割分值", placeholder="请输入分值", scale=4)
+            button_clear_score = gr.Button("清空分值", variant="primary", scale=1)
             text_move_dir = gr.Textbox(label="请输入待移动文件夹路径", placeholder="请输入待移动文件夹路径", scale=4)
             button_move_dir_open = gr.Button("打开文件", variant="primary", scale=1)
             button_move_dir_open.click(open_file, [text_move_dir], [])
+            button_clear_score.click(
+                lambda: gr.update(value=""),
+                inputs=[],
+                outputs=[text_split_score],
+            )
         with gr.Row():
             button_start_move = gr.Button(value="开始移动")
             text_move_info = gr.Text(label="移动结果", value="", interactive=False)
