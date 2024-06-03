@@ -107,6 +107,7 @@
 
             div.innerHTML = `
                 <div id="item-${entry.index}" style="display: flex;margin: 10px;align-items: center;">
+					<div style="width: 20px;">${index+1}</div> 
                     <div id="score-${entry.index}" style="width: 100px;cursor: pointer">${entry.score.toFixed(5)}</div>
                     <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制</button>
                     <!-- 注意：这里的音频文件路径需要根据实际情况调整 -->
