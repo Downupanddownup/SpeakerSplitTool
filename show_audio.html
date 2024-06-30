@@ -168,8 +168,11 @@
 
                     </div>
 
-                    <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制</button>
+                   
                     <div id="path-${entry.index}" style="padding: 0 10px;cursor: pointer;display: flex;align-items: center;height: 50px">${entry.path.replace(/\\/g, '/')}</div>
+                    
+                     <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制</button>
+                    
                 </div>
 
             `;
