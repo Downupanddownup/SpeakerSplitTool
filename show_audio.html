@@ -61,6 +61,8 @@
 <div id="audioList"></div>
 
 <script>
+    let audioList = []
+    let currentPlayingAudio = null; // 用于存储当前播放的音频
     // 使用Fetch API读取同级目录下的txt文件
     fetch('http://localhost:8031/getFile')
         .then(response => {
@@ -75,6 +77,7 @@
             entries.forEach((entry, index) => {
                 entry.index = index;
             })
+            audioList = entries
             processEchart(entries)
             // 解析数据并显示
             processData(entries);
@@ -83,12 +86,62 @@
             console.log('There has been a problem with your fetch operation:', error);
         });
 
+    function loadAudio(index) {
+        audioList.forEach((entry) => {
+            if (entry.index === index) {
+                const divElement = document.getElementById(`audio-${entry.index}-div`);
+                if (divElement.innerHTML.trim() === ''){
+                    divElement.innerHTML = `
+                         <audio id="audio-${entry.index}" controls style="width: 400px;height: 40px;margin: 0 10px">
+                            <source src="${entry.path.replace(/\\/g, '/')}" type="audio/mpeg">
+                            您的浏览器不支持音频播放。
+                        </audio>
+                `
+                    const div = document.getElementById(`item-${entry.index}`);
+
+                    const scoreElement = div.querySelector(`#score-${entry.index}`);
+                    const pathElement = div.querySelector(`#path-${entry.index}`);
+                    const audioElement = div.querySelector(`#audio-${entry.index}`);
+
+                    scoreElement.addEventListener('click', function () {
+                        dispatchClickEvent(audioElement);
+                    });
+
+                    pathElement.addEventListener('click', function () {
+                        dispatchClickEvent(audioElement);
+                    });
+
+                    // 为每个音频添加播放事件监听器
+                    audioElement.addEventListener('play', function () {
+                        if (currentPlayingAudio && currentPlayingAudio !== this) {
+                            currentPlayingAudio.pause(); // 如果有其他音频在播放，则先暂停
+                        }
+                        currentPlayingAudio = this; // 更新当前播放的音频引用
+                    });
+
+                    // 可以考虑添加暂停或结束事件处理，根据需要重置currentPlayingAudio
+                    audioElement.addEventListener('pause', () => {
+                        if (currentPlayingAudio === this) {
+                            currentPlayingAudio = null;
+                        }
+                    });
+                    audioElement.addEventListener('ended', () => {
+                        if (currentPlayingAudio === this) {
+                            currentPlayingAudio = null;
+                        }
+                    });
+                    
+                }
+            }
+        })
+    }
+    
 
     function processData(entries) {
 
         let audioList = document.getElementById('audioList');
 
-        let currentPlayingAudio = null; // 用于存储当前播放的音频
+
 
         entries.forEach((entry, index) => {
             let div = document.createElement('div');
@@ -106,52 +159,22 @@
             }
 
             div.innerHTML = `
-                <div id="item-${entry.index}" style="display: flex;margin: 10px;align-items: center;">
+                <div id="item-${entry.index}" style="display: flex;margin: 10px;align-items: center;" onclick="loadAudio(${entry.index})">
 					<div style="width: 20px;">${index+1}</div> 
                     <div id="score-${entry.index}" style="width: 100px;cursor: pointer">${entry.score.toFixed(5)}</div>
                     <button class="styled-button" onclick="copyToClipboard('${entry.score.toFixed(5)}')">复制</button>
                     <!-- 注意：这里的音频文件路径需要根据实际情况调整 -->
-                    <audio id="audio-${entry.index}" controls style="width: 400px;height: 40px;margin: 0 10px">
-                        <source src="${entry.path.replace(/\\/g, '/')}" type="audio/mpeg">
-                        您的浏览器不支持音频播放。
-                    </audio>
+                    <div id="audio-${entry.index}-div">
+
+                    </div>
+
                     <button class="styled-button" onclick="copyToClipboard('${entry.path.replace(/\\/g, '/')}')">复制</button>
                     <div id="path-${entry.index}" style="padding: 0 10px;cursor: pointer;display: flex;align-items: center;height: 50px">${entry.path.replace(/\\/g, '/')}</div>
                 </div>
 
             `;
 
-            const scoreElement = div.querySelector(`#score-${entry.index}`);
-            const pathElement = div.querySelector(`#path-${entry.index}`);
-            const audioElement = div.querySelector(`#audio-${entry.index}`);
-
-            scoreElement.addEventListener('click', function () {
-                dispatchClickEvent(audioElement);
-            });
-
-            pathElement.addEventListener('click', function () {
-                dispatchClickEvent(audioElement);
-            });
-
-            // 为每个音频添加播放事件监听器
-            audioElement.addEventListener('play', function () {
-                if (currentPlayingAudio && currentPlayingAudio !== this) {
-                    currentPlayingAudio.pause(); // 如果有其他音频在播放，则先暂停
-                }
-                currentPlayingAudio = this; // 更新当前播放的音频引用
-            });
-
-            // 可以考虑添加暂停或结束事件处理，根据需要重置currentPlayingAudio
-            audioElement.addEventListener('pause', () => {
-                if (currentPlayingAudio === this) {
-                    currentPlayingAudio = null;
-                }
-            });
-            audioElement.addEventListener('ended', () => {
-                if (currentPlayingAudio === this) {
-                    currentPlayingAudio = null;
-                }
-            });
+            
 
             audioList.appendChild(div);
         });
